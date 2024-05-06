@@ -48,50 +48,39 @@ class SimpleDrivingEnv(gym.Env):
         self._envStepCounter = 0
 
     def step(self, action):
-        # Feed action to the car and get observation of car's state
-        if self._isDiscrete:
-            fwd = [-1, -1, -1, 0, 0, 0, 1, 1, 1]
-            steerings = [-0.6, 0, 0.6, -0.6, 0, 0.6, -0.6, 0, 0.6]
-            throttle = fwd[action]
-            steering_angle = steerings[action]
-            action = [throttle, steering_angle]
-        self.car.apply_action(action)
+    # Feed action to the car and get observation of car's state
+    if self._isDiscrete:
+        fwd = [-1, -1, -1, 0, 0, 0, 1, 1, 1]
+        steerings = [-0.6, 0, 0.6, -0.6, 0, 0.6, -0.6, 0, 0.6]
+        throttle = fwd[action]
+        steering_angle = steerings[action]
+        action = [throttle, steering_angle]
+    self.car.apply_action(action)
+    for i in range(self._actionRepeat):
+        self._p.stepSimulation()
+        if self._renders:
+            time.sleep(self._timeStep)
 
-        # Simulate the environment
-        for i in range(self._actionRepeat):
-            self._p.stepSimulation()
-            if self._renders:
-                time.sleep(self._timeStep)
+        carpos, _ = self._p.getBasePositionAndOrientation(self.car.car)
+        goalpos, _ = self._p.getBasePositionAndOrientation(self.goal_object.goal)
 
-            # Get the positions of the car and the goal
-            carpos, _ = self._p.getBasePositionAndOrientation(self.car.car)
-            goalpos, _ = self._p.getBasePositionAndOrientation(self.goal_object.goal)
+        # Compute distance to goal
+        dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
 
-            # Compute distance to goal
-            dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
+        # Compute reward
+        reward = -dist_to_goal
+        if dist_to_goal < 1.5 and not self.reached_goal:
+            reward += 100  # Bonus reward for reaching the goal
+            self.done = True
+            self.reached_goal = True
 
-            # Reward shaping
-            sparse_reward = 0
-            shaping_reward = -dist_to_goal  # Distance-based shaping reward
-            collision_penalty = 0  # Placeholder for collision penalty
-            time_penalty = 0  # Placeholder for time-based penalty
+        if self._termination():
+            self.done = True
+            break
+        self._envStepCounter += 1
 
-            # Check if the goal is reached
-            if dist_to_goal < 1.5 and not self.reached_goal:
-                sparse_reward = 1  # Sparse reward for reaching the goal
-                self.reached_goal = True
-                self.done = True
-
-            # Compute total reward
-            reward = sparse_reward + shaping_reward + collision_penalty + time_penalty
-
-            if self._termination():
-                self.done = True
-                break
-            self._envStepCounter += 1
-
-        ob = self.getExtendedObservation()
-        return ob, reward, self.done, dict()
+    ob = self.getExtendedObservation()
+    return ob, reward, self.done, dict()
 
 
     def seed(self, seed=None):
