@@ -49,6 +49,9 @@ class SimpleDrivingEnv(gym.Env):
         self.reset()
         self._envStepCounter = 0
 
+    def create_single_obstacle(self):
+        self.obstacle_object = Obstacle(self._p, self.obstacle_position)
+
     def step(self, action):
         # Feed action to the car and get observation of car's state
         if (self._isDiscrete):
