@@ -6,10 +6,8 @@ from pybullet_utils import bullet_client as bc
 from simple_driving.resources.car import Car
 from simple_driving.resources.plane import Plane
 from simple_driving.resources.goal import Goal
-from simple_driving.resources.obstacle import Obstacle
 import matplotlib.pyplot as plt
 import time
-
 
 RENDER_HEIGHT = 720
 RENDER_WIDTH = 960
@@ -49,9 +47,6 @@ class SimpleDrivingEnv(gym.Env):
         self.reset()
         self._envStepCounter = 0
 
-    def create_single_obstacle(self):
-        self.obstacle_object = Obstacle(self._p, self.obstacle_position)
-
     def step(self, action):
         # Feed action to the car and get observation of car's state
         if (self._isDiscrete):
@@ -68,7 +63,6 @@ class SimpleDrivingEnv(gym.Env):
 
           carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
           goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
-          obstaclepos, obstacleorn = self._p.getBasePositionAndOrientation(self.obstacle_object.obstacle)
           car_ob = self.getExtendedObservation()
 
           if self._termination():
@@ -119,19 +113,6 @@ class SimpleDrivingEnv(gym.Env):
 
         # Visual element of the goal
         self.goal_object = Goal(self._p, self.goal)
-
-        # Create a single obstacle
-        x_obstacle = (self.np_random.uniform(5, 9) if self.np_random.integers(2) else
-                    self.np_random.uniform(-9, -5))
-        y_obstacle = (self.np_random.uniform(5, 9) if self.np_random.integers(2) else
-                    self.np_random.uniform(-9, -5))
-        self.obstacle_position = (x_obstacle, y_obstacle)
-
-        self.create_single_obstacle()
-
-        # Visual element of the obstacle
-        self.obstacle_object = Obstacle(self._p, self.obstacle_position)
-
 
         # Get observation to return
         carpos = self.car.get_observation()
