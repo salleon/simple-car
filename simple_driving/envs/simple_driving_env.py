@@ -48,45 +48,40 @@ class SimpleDrivingEnv(gym.Env):
         self._envStepCounter = 0
 
     def step(self, action):
-        # Feed action to the car and get observation of car's state
-        if (self._isDiscrete):
-            fwd = [-1, -1, -1, 0, 0, 0, 1, 1, 1]
-            steerings = [-0.6, 0, 0.6, -0.6, 0, 0.6, -0.6, 0, 0.6]
-            throttle = fwd[action]
-            steering_angle = steerings[action]
-            action = [throttle, steering_angle]
-        self.car.apply_action(action)
-        for i in range(self._actionRepeat):
-          self._p.stepSimulation()
-          if self._renders:
+    # Feed action to the car and get observation of car's state
+    if self._isDiscrete:
+        fwd = [-1, -1, -1, 0, 0, 0, 1, 1, 1]
+        steerings = [-0.6, 0, 0.6, -0.6, 0, 0.6, -0.6, 0, 0.6]
+        throttle = fwd[action]
+        steering_angle = steerings[action]
+        action = [throttle, steering_angle]
+    self.car.apply_action(action)
+    for i in range(self._actionRepeat):
+        self._p.stepSimulation()
+        if self._renders:
             time.sleep(self._timeStep)
 
-          carpos, carorn = self._p.getBasePositionAndOrientation(self.car.car)
-          goalpos, goalorn = self._p.getBasePositionAndOrientation(self.goal_object.goal)
-          car_ob = self.getExtendedObservation()
+        carpos, _ = self._p.getBasePositionAndOrientation(self.car.car)
+        goalpos, _ = self._p.getBasePositionAndOrientation(self.goal_object.goal)
 
-          if self._termination():
-            self.done = True
-            break
-          self._envStepCounter += 1
+        # Compute distance to goal
+        dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 + (carpos[1] - goalpos[1]) ** 2))
 
-        # Compute reward as L2 change in distance to goal
-        # dist_to_goal = math.sqrt(((car_ob[0] - self.goal[0]) ** 2 +
-                                  # (car_ob[1] - self.goal[1]) ** 2))
-        dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 +
-                                  (carpos[1] - goalpos[1]) ** 2))
-        # reward = max(self.prev_dist_to_goal - dist_to_goal, 0)
+        # Compute reward
         reward = -dist_to_goal
-        self.prev_dist_to_goal = dist_to_goal
-
-        # Done by reaching goal
         if dist_to_goal < 1.5 and not self.reached_goal:
-            #print("reached goal")
+            reward += 50  # Bonus reward for reaching the goal
             self.done = True
             self.reached_goal = True
 
-        ob = car_ob
-        return ob, reward, self.done, dict()
+        if self._termination():
+            self.done = True
+            break
+        self._envStepCounter += 1
+
+    ob = self.getExtendedObservation()
+    return ob, reward, self.done, dict()
+
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
