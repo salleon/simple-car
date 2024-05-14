@@ -67,7 +67,7 @@ class SimpleDrivingEnv(gym.Env):
 
           if self._termination():
             self.done = True
-            print("failed to reach goal")
+            print("fail")
             break
           self._envStepCounter += 1
 
