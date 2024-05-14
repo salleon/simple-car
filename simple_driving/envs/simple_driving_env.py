@@ -86,6 +86,10 @@ class SimpleDrivingEnv(gym.Env):
             self.reached_goal = True
             reward = 50
 
+        # Print distance to goal when done is True
+        if self.done:
+            print("Distance to goal:", dist_to_goal)
+
         ob = car_ob
         return ob, reward, self.done, dict()
 
